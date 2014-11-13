@@ -19,11 +19,14 @@ function getscanconfig() {
     while [ ${count} -lt ${DEPLOYMENT_SCAN_RETRIES} ]; do
       controller="${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT}"
       scanconfig=`$OPENSHIFT_AEROGEAR_PUSH_DIR/bin/tools/jboss-cli.sh -c --controller=${controller} "/subsystem=deployment-scanner/:read-resource(recursive=true)" 2>&1 || :`
+      client_result  "--> controller ${controller}  $(date +'%d/%m/%Y_%H:%M:%S:%N')"
+      client_result  "--> scanconfig ${scanconfig}  $(date +'%d/%m/%Y_%H:%M:%S:%N')"
       if [[ $scanconfig =~ '"outcome" => "success"' ]] ; then
         SCANCONFIG=$scanconfig
         return
       fi
       let count+=1
+      client_result  "--> SCANCONFIG ${SCANCONFIG}  $(date +'%d/%m/%Y_%H:%M:%S:%N')"
 
       sleep 2
     done
@@ -38,6 +41,7 @@ function waitondeployments() {
       getscanconfig
 
       if [ "$SCANCONFIG" == "" ]; then
+        client_result  "--> SCANCONFIG empty ${SCANCONFIG}  $(date +'%d/%m/%Y_%H:%M:%S:%N')"      
         client_message "Could not connect to WildFly management interface, skipping deployment verification"
       elif [[ $SCANCONFIG =~ '"scan-enabled" => true' ]]; then
         pushd $WILDFLY_DEPLOYMENTS_DIR
