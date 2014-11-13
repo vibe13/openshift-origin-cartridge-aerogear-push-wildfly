@@ -5,12 +5,8 @@ case "$1" in
     version="$2"
 esac
 
-# Create additional directories required by JBOSSAS
-mkdir -p ${OPENSHIFT_HOMEDIR}/.m2
-mkdir -p ${OPENSHIFT_AEROGEAR_PUSH_DIR}/{template,standalone/tmp,standalone/deployments,standalone/configuration,standalone/log,standalone/data}
-
 # Copy the version of WildFly inside versions/shared (currently taken from https://github.com/openshift-cartridges/openshift-wildfly-cartridge/archive/8.1.0.Final.zip)
-cp -r ${OPENSHIFT_AEROGEAR_PUSH_DIR}versions/shared/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/
+mv -f ${OPENSHIFT_AEROGEAR_PUSH_DIR}/versions/shared/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/
 
 # Polishing not needed bits from the original WildFly installation
 rm -rf ${OPENSHIFT_AEROGEAR_PUSH_DIR}/template/deployments
@@ -19,6 +15,9 @@ rm -rf ${OPENSHIFT_AEROGEAR_PUSH_DIR}/template/pom.xml
 rm -rf ${OPENSHIFT_AEROGEAR_PUSH_DIR}/template/.openshift/markers/java8
 rm -rf ${OPENSHIFT_AEROGEAR_PUSH_DIR}/welcome-content/*
 
+# Create additional directories required by JBOSSAS
+mkdir -p ${OPENSHIFT_HOMEDIR}/.m2
+mkdir -p ${OPENSHIFT_AEROGEAR_PUSH_DIR}/{template,standalone/tmp,standalone/deployments,standalone/configuration,standalone/log,standalone/data}
 
 # Copy the version specific files up to jbossas directory
 cp -r ${OPENSHIFT_AEROGEAR_PUSH_DIR}versions/${version}/standalone/configuration/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/standalone/configuration
