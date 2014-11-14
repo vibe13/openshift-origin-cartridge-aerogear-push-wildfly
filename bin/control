@@ -28,7 +28,7 @@ function getscanconfig() {
       let count+=1
       client_result  "--> SCANCONFIG ${SCANCONFIG}  $(date +'%d/%m/%Y_%H:%M:%S:%N')"
 
-      sleep 2
+      sleep 5
     done
 }
 
