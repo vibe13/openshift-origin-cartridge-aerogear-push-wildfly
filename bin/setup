@@ -9,8 +9,14 @@ esac
 mkdir -p ${OPENSHIFT_HOMEDIR}/.m2
 mkdir -p ${OPENSHIFT_AEROGEAR_PUSH_DIR}/{template,standalone/tmp,standalone/deployments,standalone/configuration,standalone/log,standalone/data}
 
+echo  "--> Start extracting WildFly - START $(date +'%d/%m/%Y_%H:%M:%S:%N')"
+
 # Copy the version of WildFly inside versions/shared (currently taken from https://github.com/openshift-cartridges/openshift-wildfly-cartridge/archive/8.1.0.Final.zip)
-cp -r ${OPENSHIFT_AEROGEAR_PUSH_DIR}/versions/shared/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/
+#cp -r ${OPENSHIFT_AEROGEAR_PUSH_DIR}/versions/shared/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/
+rsync -avhW --no-compress  ${OPENSHIFT_AEROGEAR_PUSH_DIR}/versions/shared/* ${OPENSHIFT_AEROGEAR_PUSH_DIR}/
+
+
+echo  "--> Start extracting WildFly - STOP $(date +'%d/%m/%Y_%H:%M:%S:%N')"
 
 # Polishing not needed bits from the original WildFly installation
 rm -rf ${OPENSHIFT_AEROGEAR_PUSH_DIR}/template/deployments
