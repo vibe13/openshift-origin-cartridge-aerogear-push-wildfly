@@ -163,7 +163,7 @@ function ishttpup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT}"; then
-            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
+            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
             return 0
         fi
         # if the process failed to start, error out immediately
@@ -187,7 +187,7 @@ function ismgmtup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT}"; then
-            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
+            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
             return 0
         fi
         let count=${count}+1
@@ -255,7 +255,7 @@ function build() {
           export MAVEN_ARGS="clean package -Popenshift -DskipTests"
           fi
 
-          echo "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
+          client_message "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
 
           if [ -n "$OPENSHIFT_MAVEN_MIRROR" ]
           then
@@ -307,10 +307,10 @@ function start() {
     rc=0
     ishttpup || rc=$?
     if [ $rc -eq 1 ]; then
-      echo "Timed out waiting for http listening port for $cartridge_type process"
+      client_message "Timed out waiting for http listening port for $cartridge_type process"
       exit 1
     elif [ $rc -eq 2 ]; then
-      echo "$cartridge_type process failed to start"
+      client_message "$cartridge_type process failed to start"
       exit 2
     fi
 
