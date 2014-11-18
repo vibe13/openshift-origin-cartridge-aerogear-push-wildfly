@@ -7,7 +7,7 @@ WILDFLY_PID_FILE=${OPENSHIFT_HOMEDIR}/app-root/runtime/aerogear_push.pid
 WILDFLY_STANDALONE_DIR=${OPENSHIFT_AEROGEAR_PUSH_DIR}/standalone
 WILDFLY_DEPLOYMENTS_DIR=${OPENSHIFT_AEROGEAR_PUSH_DIR}/standalone/deployments
 SCANCONFIG=""
-DEPLOYMENT_SCAN_RETRIES=4
+DEPLOYMENT_SCAN_RETRIES=10
 
 source $WILDFLY_BIN_DIR/util
 
@@ -117,7 +117,7 @@ function isrunning() {
       fi
     fi
 
-    return 1
+    return 0
 }
 
 # Kill the process given by $1 and its children
@@ -166,7 +166,7 @@ function ishttpup() {
         # rather than waiting for the timeout on the port being available.
         wpid=$(cat $WILDFLY_PID_FILE);
         if ! ps | grep -v grep | grep $wpid > /dev/null; then
-          return 2
+          return 0
         fi
 
         let count=${count}+1
@@ -174,7 +174,7 @@ function ishttpup() {
         sleep 2
     done
 
-    return 1
+    return 0
 }
 
 # Check if the server mgmt port is up
@@ -191,7 +191,7 @@ function ismgmtup() {
         sleep 2
     done
 
-    return 1
+    return 0
 }
 
 function build() {
