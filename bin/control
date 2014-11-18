@@ -159,7 +159,7 @@ function ishttpup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT}"; then
-            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
+            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
             return 0
         fi
         # if the process failed to start, error out immediately
@@ -183,7 +183,7 @@ function ismgmtup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT}"; then
-            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
+            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
             return 0
         fi
         let count=${count}+1
@@ -210,7 +210,7 @@ function build() {
   # and figure out how to apply a scaling factor later.
   if marker_present hot_deploy
     then
-      echo "Scaling down Maven heap settings due to presence of hot_deploy marker"
+      client_message "Scaling down Maven heap settings due to presence of hot_deploy marker"
 
       if [ -z "$MAVEN_JVM_HEAP_RATIO" ]
         then
@@ -251,7 +251,7 @@ function build() {
           export MAVEN_ARGS="clean package -Popenshift -DskipTests"
           fi
 
-          echo "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
+          client_message "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
 
           if [ -n "$OPENSHIFT_MAVEN_MIRROR" ]
           then
@@ -268,11 +268,11 @@ function build() {
 }
 
 function deploy() {
-  echo "Deploying WildFly"
+  client_message "Deploying WildFly"
 
   # Skip deployments sync when there is no deployment directory
   if [ ! -d "${OPENSHIFT_REPO_DIR}deployments" ]; then
-    echo "WARNING: The ./deployments directory not found, skipping sync."
+    client_message "WARNING: The ./deployments directory not found, skipping sync."
     return
   fi
 
@@ -285,7 +285,7 @@ function deploy() {
 }
 
 function start() {
-  echo "Starting $cartridge_type cart"
+  client_message "Starting $cartridge_type cart"
 
   if marker_present "enable_jpda"
   then
@@ -294,7 +294,7 @@ function start() {
 
   # Check for running app
   if isrunning; then
-      echo "Application is already running"
+      client_message "Application is already running"
   else
     ${WILDFLY_BIN_DIR}/standalone.sh -b $OPENSHIFT_AEROGEAR_PUSH_IP -bmanagement=$OPENSHIFT_AEROGEAR_PUSH_IP > $OPENSHIFT_AEROGEAR_PUSH_DIR/logs/server.log 2>&1 &
     PROCESS_ID=$!
@@ -303,11 +303,11 @@ function start() {
     rc=0
     ishttpup || rc=$?
     if [ $rc -eq 1 ]; then
-      echo "Timed out waiting for http listening port for $cartridge_type process"
-      exit 1
+      client_message "Timed out waiting for http listening port for $cartridge_type process"
+      exit 0
     elif [ $rc -eq 2 ]; then
-      echo "$cartridge_type process failed to start"
-      exit 2
+      client_message "$cartridge_type process failed to start"
+      exit 0
     fi
 
     waitondeployments
@@ -316,7 +316,7 @@ function start() {
 
 
 function stop() {
-  echo "Stopping $cartridge_type cart"
+  client_message "Stopping $cartridge_type cart"
 
   if isrunning; then
     if [ -f "$WILDFLY_PID_FILE" ]; then
@@ -330,7 +330,7 @@ function stop() {
 }
 
 function restart() {
-    echo "Restarting $cartridge_type cart"
+    client_message "Restarting $cartridge_type cart"
 
     stop
 
@@ -347,7 +347,7 @@ function status() {
 }
 
 function reload() {
-    echo "Reloading $cartridge_type cart"
+    client_message "Reloading $cartridge_type cart"
     restart
 }
 
@@ -359,10 +359,10 @@ function tidy() {
 }
 
 function threaddump() {
-  echo "Thread dump for $cartridge_type cart"
+  client_message "Thread dump for $cartridge_type cart"
 
     if ! isrunning; then
-        echo "Application is stopped"
+        client_message "Application is stopped"
         exit 1
     elif [ -f "$WILDFLY_PID_FILE" ]; then
         pid=$(cat $WILDFLY_PID_FILE);
@@ -372,7 +372,7 @@ function threaddump() {
         client_result ""
         client_result "The thread dump file will be available via: rhc tail $OPENSHIFT_APP_NAME -f ${OPENSHIFT_TMP_DIR}${cartridge_type}.log -o '-n 250'"
     else
-        echo "Failed to locate WildFly PID File"
+        client_message "Failed to locate WildFly PID File"
     fi
 }
 
