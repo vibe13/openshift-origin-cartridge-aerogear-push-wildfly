@@ -7,7 +7,7 @@ WILDFLY_PID_FILE=${OPENSHIFT_HOMEDIR}/app-root/runtime/aerogear_push.pid
 WILDFLY_STANDALONE_DIR=${OPENSHIFT_AEROGEAR_PUSH_DIR}/standalone
 WILDFLY_DEPLOYMENTS_DIR=${OPENSHIFT_AEROGEAR_PUSH_DIR}/standalone/deployments
 SCANCONFIG=""
-DEPLOYMENT_SCAN_RETRIES=10
+DEPLOYMENT_SCAN_RETRIES=20
 
 source $WILDFLY_BIN_DIR/util
 
@@ -19,6 +19,9 @@ function getscanconfig() {
     while [ ${count} -lt ${DEPLOYMENT_SCAN_RETRIES} ]; do
       controller="${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT}"
       scanconfig=`$OPENSHIFT_AEROGEAR_PUSH_DIR/bin/tools/jboss-cli.sh -c --controller=${controller} "/subsystem=deployment-scanner/:read-resource(recursive=true)" 2>&1 || :`
+      
+      client_message $scanconfig 
+      
       if [[ $scanconfig =~ '"outcome" => "success"' ]] ; then
         SCANCONFIG=$scanconfig
         return
@@ -117,7 +120,7 @@ function isrunning() {
       fi
     fi
 
-    return 0
+    return 1
 }
 
 # Kill the process given by $1 and its children
@@ -159,14 +162,14 @@ function ishttpup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT}"; then
-            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
+            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_HTTP_PORT} listening port"
             return 0
         fi
         # if the process failed to start, error out immediately
         # rather than waiting for the timeout on the port being available.
         wpid=$(cat $WILDFLY_PID_FILE);
         if ! ps | grep -v grep | grep $wpid > /dev/null; then
-          return 0
+          return 2
         fi
 
         let count=${count}+1
@@ -174,7 +177,7 @@ function ishttpup() {
         sleep 2
     done
 
-    return 0
+    return 1
 }
 
 # Check if the server mgmt port is up
@@ -183,7 +186,7 @@ function ismgmtup() {
     while [ ${count} -lt 64 ]
     do
         if echo 2> /dev/null > "/dev/tcp/${OPENSHIFT_AEROGEAR_PUSH_IP}/${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT}"; then
-            client_message "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
+            echo "Found ${OPENSHIFT_AEROGEAR_PUSH_IP}:${OPENSHIFT_AEROGEAR_PUSH_MANAGEMENT_HTTP_PORT} listening port"
             return 0
         fi
         let count=${count}+1
@@ -191,7 +194,7 @@ function ismgmtup() {
         sleep 2
     done
 
-    return 0
+    return 1
 }
 
 function build() {
@@ -210,7 +213,7 @@ function build() {
   # and figure out how to apply a scaling factor later.
   if marker_present hot_deploy
     then
-      client_message "Scaling down Maven heap settings due to presence of hot_deploy marker"
+      echo "Scaling down Maven heap settings due to presence of hot_deploy marker"
 
       if [ -z "$MAVEN_JVM_HEAP_RATIO" ]
         then
@@ -251,7 +254,7 @@ function build() {
           export MAVEN_ARGS="clean package -Popenshift -DskipTests"
           fi
 
-          client_message "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
+          echo "Found pom.xml... attempting to build with 'mvn -e ${MAVEN_ARGS}'"
 
           if [ -n "$OPENSHIFT_MAVEN_MIRROR" ]
           then
@@ -268,11 +271,11 @@ function build() {
 }
 
 function deploy() {
-  client_message "Deploying WildFly"
+  echo "Deploying WildFly"
 
   # Skip deployments sync when there is no deployment directory
   if [ ! -d "${OPENSHIFT_REPO_DIR}deployments" ]; then
-    client_message "WARNING: The ./deployments directory not found, skipping sync."
+    echo "WARNING: The ./deployments directory not found, skipping sync."
     return
   fi
 
@@ -285,7 +288,7 @@ function deploy() {
 }
 
 function start() {
-  client_message "Starting $cartridge_type cart"
+  echo "Starting $cartridge_type cart"
 
   if marker_present "enable_jpda"
   then
@@ -294,6 +297,7 @@ function start() {
 
   # Check for running app
   if isrunning; then
+      echo "Application is already running"
       client_message "Application is already running"
   else
     ${WILDFLY_BIN_DIR}/standalone.sh -b $OPENSHIFT_AEROGEAR_PUSH_IP -bmanagement=$OPENSHIFT_AEROGEAR_PUSH_IP > $OPENSHIFT_AEROGEAR_PUSH_DIR/logs/server.log 2>&1 &
@@ -303,11 +307,13 @@ function start() {
     rc=0
     ishttpup || rc=$?
     if [ $rc -eq 1 ]; then
+      echo "Timed out waiting for http listening port for $cartridge_type process"
       client_message "Timed out waiting for http listening port for $cartridge_type process"
-      exit 0
+      #exit 1
     elif [ $rc -eq 2 ]; then
+      echo "$cartridge_type process failed to start"
       client_message "$cartridge_type process failed to start"
-      exit 0
+      #exit 2
     fi
 
     waitondeployments
@@ -316,7 +322,7 @@ function start() {
 
 
 function stop() {
-  client_message "Stopping $cartridge_type cart"
+  echo "Stopping $cartridge_type cart"
 
   if isrunning; then
     if [ -f "$WILDFLY_PID_FILE" ]; then
@@ -330,7 +336,7 @@ function stop() {
 }
 
 function restart() {
-    client_message "Restarting $cartridge_type cart"
+    echo "Restarting $cartridge_type cart"
 
     stop
 
@@ -347,7 +353,7 @@ function status() {
 }
 
 function reload() {
-    client_message "Reloading $cartridge_type cart"
+    echo "Reloading $cartridge_type cart"
     restart
 }
 
@@ -359,10 +365,10 @@ function tidy() {
 }
 
 function threaddump() {
-  client_message "Thread dump for $cartridge_type cart"
+  echo "Thread dump for $cartridge_type cart"
 
     if ! isrunning; then
-        client_message "Application is stopped"
+        echo "Application is stopped"
         exit 1
     elif [ -f "$WILDFLY_PID_FILE" ]; then
         pid=$(cat $WILDFLY_PID_FILE);
@@ -372,7 +378,7 @@ function threaddump() {
         client_result ""
         client_result "The thread dump file will be available via: rhc tail $OPENSHIFT_APP_NAME -f ${OPENSHIFT_TMP_DIR}${cartridge_type}.log -o '-n 250'"
     else
-        client_message "Failed to locate WildFly PID File"
+        echo "Failed to locate WildFly PID File"
     fi
 }
 
