@@ -316,7 +316,8 @@ function start() {
       #exit 2
     fi
 
-    waitondeployments
+    getscanconfig
+    #waitondeployments
   fi
 }
 
